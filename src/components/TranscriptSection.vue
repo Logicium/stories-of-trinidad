@@ -4,7 +4,7 @@
       <button 
         @click="toggleExpanded"
         class="transcript-header"
-        aria-expanded="isExpanded"
+        :aria-expanded="isExpanded ? 'true' : 'false'"
       >
         <h3 class="transcript-title">Transcript</h3>
         <div class="expand-icon" :class="{ expanded: isExpanded }">

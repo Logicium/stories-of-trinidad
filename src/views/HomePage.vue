@@ -20,8 +20,8 @@
           >
             <div class="card-image">
               <img 
-                :src="location.images[0].url" 
-                :alt="location.images[0].alt"
+                :src="location.images[0]?.url || ''" 
+                :alt="location.images[0]?.alt || ''"
               />
             </div>
             <div class="card-content">

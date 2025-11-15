@@ -18,8 +18,8 @@
         >
           <div class="location-image">
             <img 
-              :src="location.images[0].url" 
-              :alt="location.images[0].alt"
+              :src="location.images[0]?.url || ''" 
+              :alt="location.images[0]?.alt || ''"
             />
           </div>
           
@@ -71,7 +71,7 @@ const props = defineProps<Props>()
 const router = useRouter()
 const mapElement = ref<HTMLElement | null>(null)
 let map: google.maps.Map | null = null
-const markers: google.maps.Marker[] = []
+const markers: (google.maps.Marker)[] = []
 
 const sortedLocations = computed(() => {
   return [...props.locations].sort((a, b) => a.distance - b.distance)

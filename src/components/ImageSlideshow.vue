@@ -3,7 +3,7 @@
     <!-- Blurred background -->
     <div 
       class="slideshow-background"
-      :style="{ backgroundImage: `url(${images[currentIndex].url})` }"
+      :style="{ backgroundImage: `url(${images[currentIndex]?.url || ''})` }"
     ></div>
     
     <div class="slideshow-content">
@@ -17,8 +17,8 @@
         <transition name="fade" mode="out-in">
           <img 
             :key="currentIndex"
-            :src="images[currentIndex].url" 
-            :alt="images[currentIndex].alt"
+            :src="images[currentIndex]?.url || ''" 
+            :alt="images[currentIndex]?.alt || ''"
             class="main-image"
           />
         </transition>
