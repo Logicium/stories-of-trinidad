@@ -1,10 +1,14 @@
 <template>
   <div class="slideshow-container">
-    <!-- Blurred background -->
-    <div 
-      class="slideshow-background"
-      :style="{ backgroundImage: `url(${images[currentIndex]?.url || ''})` }"
-    ></div>
+    <!-- Blurred background image that covers everything -->
+    <transition name="fade" mode="out-in">
+      <img 
+        :key="'blur-' + currentIndex"
+        :src="images[currentIndex]?.url || ''" 
+        :alt="''"
+        class="background-image"
+      />
+    </transition>
     
     <div class="slideshow-content">
       <!-- Location name overlay at top -->
@@ -12,11 +16,11 @@
         <h1 class="location-name">{{ locationName }}</h1>
       </div>
       
-      <!-- Main image - full width -->
+      <!-- Clear main image -->
       <div class="image-container">
         <transition name="fade" mode="out-in">
           <img 
-            :key="currentIndex"
+            :key="'main-' + currentIndex"
             :src="images[currentIndex]?.url || ''" 
             :alt="images[currentIndex]?.alt || ''"
             class="main-image"
@@ -102,17 +106,16 @@ const goToImage = (index: number) => {
   overflow: hidden;
 }
 
-.slideshow-background {
+.background-image {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-size: cover;
-  background-position: center;
-  filter: blur(30px);
+  object-fit: cover;
+  filter: blur(20px) brightness(0.6);
   transform: scale(1.1);
-  opacity: 0.8;
+  z-index: 0;
 }
 
 .slideshow-content {
@@ -125,7 +128,7 @@ const goToImage = (index: number) => {
 
 .location-header {
   padding: var(--spacing-2xl) var(--spacing-lg);
-  background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%);
   flex-shrink: 0;
 }
 
@@ -142,18 +145,22 @@ const goToImage = (index: number) => {
 
 .image-container {
   flex: 1;
+  position: relative;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  overflow: hidden;
 }
 
 .main-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+  z-index: 1;
 }
 
 .slideshow-controls {
@@ -161,7 +168,7 @@ const goToImage = (index: number) => {
   align-items: center;
   justify-content: center;
   padding: var(--spacing-2xl) var(--spacing-lg);
-  background: linear-gradient(0deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
   gap: var(--spacing-lg);
   flex-shrink: 0;
 }

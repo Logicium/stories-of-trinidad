@@ -51,7 +51,7 @@ const locationsStore = useLocationsStore()
 
 const locations = computed(() => locationsStore.locations)
 
-const navigateToLocation = (locationId: string) => {
+const navigateToLocation = (locationId: number) => {
   router.push({ name: 'location', params: { id: locationId } })
 }
 </script>

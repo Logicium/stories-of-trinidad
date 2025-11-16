@@ -54,8 +54,8 @@ const handleCaptionsToggle = (enabled: boolean) => {
 }
 
 const loadLocation = () => {
-  const locationId = route.params.id as string
-  if (locationId) {
+  const locationId = parseInt(route.params.id as string)
+  if (!isNaN(locationId)) {
     locationsStore.setCurrentLocation(locationId)
   }
 }

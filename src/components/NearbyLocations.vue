@@ -195,7 +195,7 @@ const formatDistance = (distance: number): string => {
   return `${distance.toFixed(1)}km away`
 }
 
-const navigateToLocation = (locationId: string) => {
+const navigateToLocation = (locationId: number) => {
   router.push({ name: 'location', params: { id: locationId } })
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
