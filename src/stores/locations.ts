@@ -12,7 +12,7 @@ export const useLocationsStore = defineStore('locations', () => {
     currentLocation.value = locations.value.find(loc => loc.id === locationId) || null
   }
 
-  function getNearbyLocations(locationId: number, maxDistance: number = 10, limit: number = 6) {
+  function getNearbyLocations(locationId: number, maxDistance: number = 10, limit: number = Infinity) {
     const current = locations.value.find(loc => loc.id === locationId)
     if (!current) return []
 
