@@ -10,6 +10,9 @@ const scanOpen = ref(false)
 const scrolled = ref(false)
 
 const isDetail = computed(() => route.name === 'location')
+// On a story page the header floats over a dark full-bleed image until the
+// reader scrolls onto the paper — use light chrome there for legibility.
+const overHero = computed(() => isDetail.value && !scrolled.value)
 
 const onScroll = () => { scrolled.value = window.scrollY > 24 }
 onMounted(() => {
@@ -22,7 +25,7 @@ const goBack = () => router.push({ name: 'home' })
 </script>
 
 <template>
-  <header class="site-header" :class="{ scrolled, detail: isDetail }">
+  <header class="site-header" :class="{ scrolled, detail: isDetail, 'over-hero': overHero }">
     <div class="bar">
       <!-- Left: back on detail, else a quiet locale tag -->
       <div class="bar-left">
@@ -159,6 +162,28 @@ const goBack = () => router.push({ name: 'home' })
   border-color: var(--ink);
   background: var(--ink);
   color: var(--paper);
+}
+
+/* ---- Light chrome over the story hero ---- */
+.site-header.over-hero .wm-mark { color: #fff; }
+.site-header.over-hero .wm-line { color: rgba(255, 255, 255, 0.72); }
+.site-header.over-hero .back,
+.site-header.over-hero .locale { color: rgba(255, 255, 255, 0.88); }
+.site-header.over-hero .scan {
+  color: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.38);
+}
+.site-header.over-hero .back:hover { color: #fff; }
+.site-header.over-hero .scan:hover {
+  background: #fff;
+  color: var(--ink);
+  border-color: #fff;
+}
+/* gentle shadow so light text stays legible against bright image areas */
+.site-header.over-hero .wordmark,
+.site-header.over-hero .back,
+.site-header.over-hero .scan {
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.35);
 }
 
 /* ---- Scan overlay ---- */

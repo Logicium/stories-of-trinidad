@@ -1,60 +1,8 @@
-<template>
-  <div class="nearby-section">
-    <div class="nearby-container">
-      <h2 class="section-title">Nearby Locations</h2>
-      
-      <!-- Google Map -->
-      <div class="map-container">
-        <div ref="mapElement" class="google-map"></div>
-      </div>
-      
-      <!-- List of nearby locations -->
-      <div class="locations-list">
-        <div 
-          v-for="location in sortedLocations"
-          :key="location.id"
-          class="location-card"
-          @click="navigateToLocation(location.id)"
-        >
-          <div class="location-image">
-            <img 
-              :src="location.images[0]?.url || ''" 
-              :alt="location.images[0]?.alt || ''"
-            />
-          </div>
-          
-          <div class="location-info">
-            <h3 class="location-name">{{ location.name }}</h3>
-            <p class="location-description">{{ location.description }}</p>
-            <div class="location-meta">
-              <span class="distance">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-                {{ formatDistance(location.distance) }}
-              </span>
-            </div>
-          </div>
-          
-          <div class="location-arrow">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </div>
-        </div>
-        
-        <div v-if="sortedLocations.length === 0" class="empty-state">
-          <p>No other locations nearby</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { ArrowUpRight, Navigation } from 'lucide-vue-next'
+import { loadGoogleMaps, parchmentMapStyles } from '@/utils/maps'
 import type { Location } from '@/stores/locations'
 
 interface LocationWithDistance extends Location {
@@ -71,128 +19,83 @@ const props = defineProps<Props>()
 const router = useRouter()
 const mapElement = ref<HTMLElement | null>(null)
 let map: google.maps.Map | null = null
-const markers: (google.maps.Marker)[] = []
+const markers: google.maps.Marker[] = []
 
-const sortedLocations = computed(() => {
-  return [...props.locations].sort((a, b) => a.distance - b.distance)
-})
-
-const loadGoogleMapsScript = (): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    if (typeof google !== 'undefined' && google.maps) {
-      resolve()
-      return
-    }
-
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-    if (!apiKey) {
-      reject(new Error('Google Maps API key not found. Please restart your dev server.'))
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`
-    script.async = true
-    script.defer = true
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Failed to load Google Maps script'))
-    document.head.appendChild(script)
-  })
-}
+const sortedLocations = computed(() =>
+  [...props.locations].sort((a, b) => a.distance - b.distance),
+)
 
 const initMap = async () => {
   if (!mapElement.value || !props.currentLocation) return
-
   try {
-    await loadGoogleMapsScript()
-
-    // Create map centered on current location
+    await loadGoogleMaps()
     map = new google.maps.Map(mapElement.value, {
       center: props.currentLocation,
       zoom: 15,
-      styles: [
-        {
-          featureType: 'poi',
-          elementType: 'labels',
-          stylers: [{ visibility: 'off' }],
-        },
-      ],
+      styles: parchmentMapStyles,
       zoomControl: true,
       mapTypeControl: false,
       streetViewControl: false,
-      fullscreenControl: true,
+      fullscreenControl: false,
+      clickableIcons: false,
+      disableDefaultUI: true,
+      backgroundColor: '#F2ECE1',
     })
 
-    // Add marker for current location (larger, terracotta)
     new google.maps.Marker({
       position: props.currentLocation,
-      map: map,
+      map,
       title: props.currentLocationName,
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
-        scale: 10,
-        fillColor: '#C97D60',
+        scale: 9,
+        fillColor: '#B5522C',
         fillOpacity: 1,
-        strokeColor: '#FFFFFF',
+        strokeColor: '#FBF8F2',
         strokeWeight: 3,
       },
+      zIndex: 10,
     })
 
-    // Add markers for nearby locations (smaller, rust)
     sortedLocations.value.forEach((location) => {
       const marker = new google.maps.Marker({
         position: location.coordinates,
-        map: map,
+        map,
         title: location.name,
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: '#9B4F3E',
-          fillOpacity: 0.8,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 2,
+          scale: 7,
+          fillColor: '#211C17',
+          fillOpacity: 0.92,
+          strokeColor: '#FBF8F2',
+          strokeWeight: 2.5,
         },
       })
-
-      marker.addListener('click', () => {
-        navigateToLocation(location.id)
-      })
-
+      marker.addListener('click', () => navigateToLocation(location.id))
       markers.push(marker)
     })
 
-    // Fit bounds to show all markers
     if (sortedLocations.value.length > 0) {
       const bounds = new google.maps.LatLngBounds()
       bounds.extend(props.currentLocation)
-      sortedLocations.value.forEach((loc) => {
-        bounds.extend(loc.coordinates)
-      })
-      map.fitBounds(bounds)
+      sortedLocations.value.forEach((loc) => bounds.extend(loc.coordinates))
+      map.fitBounds(bounds, 80)
     }
   } catch (error) {
     console.error('Error loading Google Maps:', error)
-    // Show fallback message
     if (mapElement.value) {
       mapElement.value.innerHTML = `
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #E8D5B7 0%, #D4A574 100%); color: #4A3428; padding: 2rem; text-align: center;">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem; opacity: 0.7;">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-            <circle cx="12" cy="10" r="3"></circle>
-          </svg>
-          <p style="font-size: 1.1rem; margin-bottom: 0.5rem; font-weight: 600;">${props.currentLocationName}</p>
-          <p style="font-size: 0.9rem; opacity: 0.7;">Map temporarily unavailable</p>
-        </div>
-      `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:#f2ece1;color:#4A4138;padding:2rem;text-align:center;font-family:'Space Grotesk',sans-serif;">
+          <p style="font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;color:#897e6f;margin-bottom:.5rem;">${props.currentLocationName}</p>
+          <p style="font-size:.85rem;color:#897e6f;">Map temporarily unavailable</p>
+        </div>`
     }
   }
 }
 
 const formatDistance = (distance: number): string => {
-  if (distance < 1) {
-    return `${Math.round(distance * 1000)}m away`
-  }
-  return `${distance.toFixed(1)}km away`
+  if (distance < 1) return `${Math.round(distance * 1000)} m`
+  return `${distance.toFixed(1)} km`
 }
 
 const navigateToLocation = (locationId: number) => {
@@ -200,196 +103,209 @@ const navigateToLocation = (locationId: number) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-onMounted(() => {
-  initMap()
-})
-
-watch(() => props.currentLocation, () => {
-  // Clear existing markers
-  markers.forEach(marker => marker.setMap(null))
-  markers.length = 0
-  // Reinitialize map
-  initMap()
-})
+onMounted(initMap)
+watch(
+  () => props.currentLocation,
+  () => {
+    markers.forEach((m) => m.setMap(null))
+    markers.length = 0
+    initMap()
+  },
+)
 </script>
 
+<template>
+  <section class="nearby">
+    <div class="container">
+      <div class="nearby-head" v-reveal>
+        <span class="eyebrow eyebrow--brass">Keep walking</span>
+        <h2 class="nearby-title">Nearby Stops</h2>
+      </div>
+
+      <div class="nearby-grid">
+        <!-- Map -->
+        <div class="map-wrap" v-reveal>
+          <div ref="mapElement" class="map"></div>
+          <div class="map-legend">
+            <span class="lg lg--here"><i></i> You are here</span>
+            <span class="lg lg--other"><i></i> Other stops</span>
+          </div>
+        </div>
+
+        <!-- List -->
+        <div class="list">
+          <button
+            v-for="(location, i) in sortedLocations"
+            :key="location.id"
+            class="row"
+            v-reveal="i * 70"
+            @click="navigateToLocation(location.id)"
+          >
+            <div class="row-thumb">
+              <img
+                :src="location.images[0]?.url || ''"
+                :alt="location.images[0]?.alt || location.name"
+                loading="lazy"
+              />
+            </div>
+            <div class="row-body">
+              <span class="row-name">{{ location.name }}</span>
+              <span class="row-meta">
+                <Navigation :size="12" :stroke-width="2" />
+                {{ formatDistance(location.distance) }} away
+                <span v-if="location.era"> · {{ location.era }}</span>
+              </span>
+            </div>
+            <ArrowUpRight class="row-go" :size="20" :stroke-width="1.6" />
+          </button>
+
+          <div v-if="sortedLocations.length === 0" class="empty">
+            <p>You’ve reached the edge of the tour.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>
+
 <style scoped>
-.nearby-section {
-  width: 100%;
-  background: var(--color-surface);
-  padding: var(--spacing-2xl) 0;
+.nearby {
+  background: var(--paper-2);
+  padding: var(--sp-8) 0;
+  border-top: 1px solid var(--line);
 }
 
-.nearby-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 var(--spacing-lg);
+.nearby-head { margin-bottom: var(--sp-6); }
+.nearby-head .eyebrow { display: block; margin-bottom: 0.75rem; }
+.nearby-title {
+  font-size: var(--fs-display);
+  font-style: italic;
+  font-weight: 300;
 }
 
-.section-title {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--color-deep-brown);
-  text-align: center;
-  margin-bottom: var(--spacing-xl);
+.nearby-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: start;
 }
 
-.map-container {
-  margin-bottom: var(--spacing-2xl);
+/* Map */
+.map-wrap {
+  position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
 }
-
-.google-map {
+.map {
   width: 100%;
-  height: 400px;
+  height: 460px;
+  background: #f2ece1;
 }
+.map-legend {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  display: flex;
+  gap: 1rem;
+  padding: 0.6rem 0.9rem;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  border-radius: 100px;
+}
+.lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.lg i { width: 9px; height: 9px; border-radius: 50%; }
+.lg--here i { background: var(--ember); }
+.lg--other i { background: var(--ink); }
 
-.locations-list {
+/* List */
+.list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
 }
-
-.location-card {
+.row {
   display: flex;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-base);
+  align-items: center;
+  gap: 1.1rem;
+  text-align: left;
+  padding: 1.1rem 0.25rem;
+  border-bottom: 1px solid var(--line);
+  transition: padding var(--t-fast);
 }
+.row:first-child { border-top: 1px solid var(--line); }
+.row:hover { padding-left: 0.75rem; }
 
-.location-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-clay);
-}
-
-.location-card:active {
-  transform: translateY(0);
-}
-
-.location-image {
-  width: 100px;
-  height: 100px;
+.row-thumb {
+  width: 72px; height: 72px;
   flex-shrink: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   overflow: hidden;
-  background: var(--color-sand);
+  background: var(--paper);
 }
-
-.location-image img {
-  width: 100%;
-  height: 100%;
+.row-thumb img {
+  width: 100%; height: 100%;
   object-fit: cover;
+  filter: saturate(0.92);
+  transition: transform var(--t);
 }
+.row:hover .row-thumb img { transform: scale(1.06); }
 
-.location-info {
+.row-body {
   flex: 1;
   min-width: 0;
-}
-
-.location-name {
-  font-family: var(--font-accent);
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--color-deep-brown);
-  margin-bottom: var(--spacing-xs);
-}
-
-.location-description {
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-sm);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.location-meta {
   display: flex;
-  gap: var(--spacing-md);
+  flex-direction: column;
+  gap: 0.35rem;
 }
-
-.distance {
-  display: flex;
+.row-name {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--ink);
+  transition: color var(--t-fast);
+}
+.row:hover .row-name { color: var(--brass); }
+.row-meta {
+  display: inline-flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  font-size: 0.85rem;
-  color: var(--color-rust);
-  font-weight: 600;
+  gap: 0.4em;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
-
-.distance svg {
+.row-go {
   flex-shrink: 0;
+  color: var(--ink-3);
+  transition: color var(--t-fast), transform var(--t);
 }
+.row:hover .row-go { color: var(--brass); transform: translate(3px, -3px); }
 
-.location-arrow {
-  display: flex;
-  align-items: center;
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
-}
-
-.empty-state {
+.empty {
+  padding: 2.5rem 0;
   text-align: center;
-  padding: var(--spacing-2xl);
-  color: var(--color-text-secondary);
+}
+.empty p {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.25rem;
+  color: var(--ink-3);
 }
 
-.empty-state p {
-  font-family: var(--font-accent);
-  font-size: 1.1rem;
-}
-
-/* Mobile optimizations */
-@media (max-width: 768px) {
-  .nearby-section {
-    padding: var(--spacing-xl) 0;
-  }
-  
-  .nearby-container {
-    padding: 0 var(--spacing-md);
-  }
-  
-  .section-title {
-    font-size: 1.75rem;
-  }
-  
-  .location-card {
-    gap: var(--spacing-sm);
-  }
-  
-  .location-image {
-    width: 80px;
-    height: 80px;
-  }
-  
-  .location-name {
-    font-size: 1.1rem;
-  }
-  
-  .location-description {
-    font-size: 0.85rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .location-image {
-    width: 70px;
-    height: 70px;
-  }
-  
-  .location-name {
-    font-size: 1rem;
-  }
+@media (max-width: 860px) {
+  .nearby-grid { grid-template-columns: 1fr; }
+  .map { height: 340px; }
 }
 </style>
