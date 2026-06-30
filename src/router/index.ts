@@ -16,6 +16,10 @@ const router = createRouter({
       component: TourLocation
     }
   ],
+  scrollBehavior(to, from, savedPosition) {
+    // Restore on back/forward; otherwise always start a new page at the top.
+    return savedPosition ?? { top: 0 }
+  },
 })
 
 export default router

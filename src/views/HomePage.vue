@@ -52,7 +52,7 @@ const moreSections = computed(() => {
   for (const s of rest) (groups[districtOf(s)] ||= []).push(s)
   return SECTION_ORDER.filter((name) => groups[name]?.length).map((name) => ({
     name,
-    items: groups[name],
+    items: groups[name] as Location[],
   }))
 })
 

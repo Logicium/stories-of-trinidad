@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowUpRight, Navigation } from 'lucide-vue-next'
-import { loadGoogleMaps, parchmentMapStyles } from '@/utils/maps'
+import HomeTourMap from '@/components/HomeTourMap.vue'
+import { formatDistance } from '@/utils/geo'
 import type { Location } from '@/stores/locations'
 
 interface LocationWithDistance extends Location {
@@ -17,151 +18,86 @@ interface Props {
 
 const props = defineProps<Props>()
 const router = useRouter()
-const mapElement = ref<HTMLElement | null>(null)
-let map: google.maps.Map | null = null
-const markers: google.maps.Marker[] = []
 
-const sortedLocations = computed(() =>
-  [...props.locations].sort((a, b) => a.distance - b.distance),
-)
+const NEAR = 4 // nearest stops shown as cards + numbered on the map
 
-const initMap = async () => {
-  if (!mapElement.value || !props.currentLocation) return
-  try {
-    await loadGoogleMaps()
-    map = new google.maps.Map(mapElement.value, {
-      center: props.currentLocation,
-      zoom: 15,
-      styles: parchmentMapStyles,
-      zoomControl: true,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false,
-      clickableIcons: false,
-      disableDefaultUI: true,
-      backgroundColor: '#F2ECE1',
-    })
+const sorted = computed(() => [...props.locations].sort((a, b) => a.distance - b.distance))
+const nearest = computed(() => sorted.value.slice(0, NEAR))
+const farther = computed(() => sorted.value.slice(NEAR))
 
-    new google.maps.Marker({
-      position: props.currentLocation,
-      map,
-      title: props.currentLocationName,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 9,
-        fillColor: '#B5522C',
-        fillOpacity: 1,
-        strokeColor: '#FBF8F2',
-        strokeWeight: 3,
-      },
-      zIndex: 10,
-    })
-
-    sortedLocations.value.forEach((location) => {
-      const marker = new google.maps.Marker({
-        position: location.coordinates,
-        map,
-        title: location.name,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: '#211C17',
-          fillOpacity: 0.92,
-          strokeColor: '#FBF8F2',
-          strokeWeight: 2.5,
-        },
-      })
-      marker.addListener('click', () => navigateToLocation(location.id))
-      markers.push(marker)
-    })
-
-    if (sortedLocations.value.length > 0) {
-      const bounds = new google.maps.LatLngBounds()
-      bounds.extend(props.currentLocation)
-      sortedLocations.value.forEach((loc) => bounds.extend(loc.coordinates))
-      map.fitBounds(bounds, 80)
-    }
-  } catch (error) {
-    console.error('Error loading Google Maps:', error)
-    if (mapElement.value) {
-      mapElement.value.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:#f2ece1;color:#4A4138;padding:2rem;text-align:center;font-family:'Space Grotesk',sans-serif;">
-          <p style="font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;color:#897e6f;margin-bottom:.5rem;">${props.currentLocationName}</p>
-          <p style="font-size:.85rem;color:#897e6f;">Map temporarily unavailable</p>
-        </div>`
-    }
-  }
-}
-
-const formatDistance = (distance: number): string => {
-  if (distance < 1) return `${Math.round(distance * 1000)} m`
-  return `${distance.toFixed(1)} km`
-}
-
-const navigateToLocation = (locationId: number) => {
-  router.push({ name: 'location', params: { id: locationId } })
+const navigateToLocation = (id: number) => {
+  router.push({ name: 'location', params: { id } })
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
-
-onMounted(initMap)
-watch(
-  () => props.currentLocation,
-  () => {
-    markers.forEach((m) => m.setMap(null))
-    markers.length = 0
-    initMap()
-  },
-)
 </script>
 
 <template>
-  <section class="nearby">
-    <div class="container">
-      <div class="nearby-head" v-reveal>
+  <section class="explore">
+    <!-- Immersive map band — gradient + text overlay, like the hero -->
+    <div class="explore-map">
+      <HomeTourMap
+        :stops="sorted"
+        :user-location="currentLocation ?? null"
+        :highlight="NEAR"
+        bleed
+        offset-right
+      />
+      <div class="explore-scrim" aria-hidden="true"></div>
+      <div class="container explore-overlay">
         <span class="eyebrow eyebrow--brass">Keep walking</span>
-        <h2 class="nearby-title">Nearby Stops</h2>
+        <h2 class="explore-title">Nearby Stops</h2>
+        <p class="explore-sub">
+          {{ sorted.length }} more stories within a short walk of {{ currentLocationName }}.
+        </p>
       </div>
+    </div>
 
-      <div class="nearby-grid">
-        <!-- Map -->
-        <div class="map-wrap" v-reveal>
-          <div ref="mapElement" class="map"></div>
-          <div class="map-legend">
-            <span class="lg lg--here"><i></i> You are here</span>
-            <span class="lg lg--other"><i></i> Other stops</span>
+    <div class="container">
+      <!-- Nearest — full cards, numbered to match the map -->
+      <ul class="near">
+        <li
+          v-for="(loc, i) in nearest"
+          :key="loc.id"
+          class="row"
+          @click="navigateToLocation(loc.id)"
+        >
+          <span class="row-num">{{ i + 1 }}</span>
+          <div class="row-thumb">
+            <img :src="loc.images[0]?.url || ''" :alt="loc.images[0]?.alt || loc.name" loading="lazy" />
           </div>
+          <div class="row-body">
+            <span class="row-name">{{ loc.name }}</span>
+            <span class="row-meta">
+              <Navigation :size="12" :stroke-width="2" />
+              {{ formatDistance(loc.distance) }} away
+              <span v-if="loc.era"> · {{ loc.era }}</span>
+            </span>
+          </div>
+          <ArrowUpRight class="row-go" :size="20" :stroke-width="1.6" />
+        </li>
+      </ul>
+
+      <!-- Farther afield — compact thumbnail grid -->
+      <div v-if="farther.length" class="far">
+        <div class="far-head">
+          <span class="eyebrow">Farther afield</span>
+          <span class="far-count">{{ farther.length }} stops</span>
         </div>
-
-        <!-- List -->
-        <div class="list">
+        <div class="far-grid">
           <button
-            v-for="(location, i) in sortedLocations"
-            :key="location.id"
-            class="row"
-            v-reveal="i * 70"
-            @click="navigateToLocation(location.id)"
+            v-for="loc in farther"
+            :key="loc.id"
+            class="far-card"
+            @click="navigateToLocation(loc.id)"
           >
-            <div class="row-thumb">
-              <img
-                :src="location.images[0]?.url || ''"
-                :alt="location.images[0]?.alt || location.name"
-                loading="lazy"
-              />
+            <div class="far-thumb">
+              <img :src="loc.images[0]?.url || ''" :alt="loc.images[0]?.alt || loc.name" loading="lazy" />
             </div>
-            <div class="row-body">
-              <span class="row-name">{{ location.name }}</span>
-              <span class="row-meta">
-                <Navigation :size="12" :stroke-width="2" />
-                {{ formatDistance(location.distance) }} away
-                <span v-if="location.era"> · {{ location.era }}</span>
-              </span>
+            <div class="far-info">
+              <span class="far-name">{{ loc.name }}</span>
+              <span class="far-meta">{{ formatDistance(loc.distance) }} away</span>
             </div>
-            <ArrowUpRight class="row-go" :size="20" :stroke-width="1.6" />
           </button>
-
-          <div v-if="sortedLocations.length === 0" class="empty">
-            <p>You’ve reached the edge of the tour.</p>
-          </div>
         </div>
       </div>
     </div>
@@ -169,83 +105,86 @@ watch(
 </template>
 
 <style scoped>
-.nearby {
+.explore {
   background: var(--paper-2);
-  padding: var(--sp-8) 0;
+  padding: var(--sp-7) 0 var(--sp-8);
   border-top: 1px solid var(--line);
 }
 
-.nearby-head { margin-bottom: var(--sp-6); }
-.nearby-head .eyebrow { display: block; margin-bottom: 0.75rem; }
-.nearby-title {
+/* ---- Immersive map band ---- */
+.explore-map {
+  position: relative;
+  width: 100%;
+  height: min(58svh, 480px);
+  margin-bottom: var(--sp-6);
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.explore-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    var(--paper-2) 0%,
+    color-mix(in srgb, var(--paper-2) 90%, transparent) 30%,
+    color-mix(in srgb, var(--paper-2) 50%, transparent) 46%,
+    transparent 62%
+  );
+}
+.explore-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  pointer-events: none;
+}
+.explore-overlay .eyebrow { margin-bottom: 0.9rem; }
+.explore-title {
   font-size: var(--fs-display);
   font-style: italic;
   font-weight: 300;
+  margin-bottom: 0.9rem;
 }
-
-.nearby-grid {
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: clamp(1.5rem, 4vw, 3rem);
-  align-items: start;
-}
-
-/* Map */
-.map-wrap {
-  position: relative;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--line);
-}
-.map {
-  width: 100%;
-  height: 460px;
-  background: #f2ece1;
-}
-.map-legend {
-  position: absolute;
-  left: 1rem;
-  bottom: 1rem;
-  display: flex;
-  gap: 1rem;
-  padding: 0.6rem 0.9rem;
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--line);
-  border-radius: 100px;
-}
-.lg {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45em;
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.explore-sub {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: var(--fs-lead);
+  line-height: 1.45;
   color: var(--ink-2);
-  font-weight: 500;
+  max-width: 24rem;
 }
-.lg i { width: 9px; height: 9px; border-radius: 50%; }
-.lg--here i { background: var(--ember); }
-.lg--other i { background: var(--ink); }
 
-/* List */
-.list {
-  display: flex;
-  flex-direction: column;
-}
+/* ---- Nearest cards ---- */
+.near { list-style: none; display: flex; flex-direction: column; }
 .row {
   display: flex;
   align-items: center;
   gap: 1.1rem;
-  text-align: left;
   padding: 1.1rem 0.25rem;
   border-bottom: 1px solid var(--line);
+  cursor: pointer;
   transition: padding var(--t-fast);
 }
 .row:first-child { border-top: 1px solid var(--line); }
 .row:hover { padding-left: 0.75rem; }
-
+.row-num {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1.5px solid var(--brass-2);
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
 .row-thumb {
   width: 72px; height: 72px;
   flex-shrink: 0;
@@ -260,14 +199,7 @@ watch(
   transition: transform var(--t);
 }
 .row:hover .row-thumb img { transform: scale(1.06); }
-
-.row-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
+.row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.35rem; }
 .row-name {
   font-family: var(--font-display);
   font-size: 1.3rem;
@@ -286,26 +218,83 @@ watch(
   text-transform: uppercase;
   color: var(--ink-3);
 }
-.row-go {
-  flex-shrink: 0;
-  color: var(--ink-3);
-  transition: color var(--t-fast), transform var(--t);
-}
+.row-go { flex-shrink: 0; color: var(--ink-3); transition: color var(--t-fast), transform var(--t); }
 .row:hover .row-go { color: var(--brass); transform: translate(3px, -3px); }
 
-.empty {
-  padding: 2.5rem 0;
-  text-align: center;
+/* ---- Farther grid ---- */
+.far { margin-top: var(--sp-6); }
+.far-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line);
 }
-.empty p {
+.far-count {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.far-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(218px, 1fr));
+  gap: 1.25rem;
+}
+.far-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  text-align: left;
+  cursor: pointer;
+}
+.far-thumb {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
+}
+.far-thumb img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: saturate(0.92);
+  transition: transform var(--t-slow), filter var(--t);
+}
+.far-card:hover .far-thumb img { transform: scale(1.05); filter: saturate(1.02); }
+.far-info { display: flex; flex-direction: column; gap: 0.2rem; }
+.far-name {
   font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.25rem;
+  font-size: 1.12rem;
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--ink);
+  transition: color var(--t-fast);
+}
+.far-card:hover .far-name { color: var(--brass); }
+.far-meta {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--ink-3);
 }
 
-@media (max-width: 860px) {
-  .nearby-grid { grid-template-columns: 1fr; }
-  .map { height: 340px; }
+@media (max-width: 640px) {
+  .explore-map { height: 52svh; min-height: 340px; }
+  .explore-scrim {
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in srgb, var(--paper-2) 55%, transparent) 55%,
+      var(--paper-2) 100%
+    );
+  }
+  .explore-overlay { justify-content: flex-end; padding-bottom: 1.75rem; }
+  .far-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 }
 </style>
