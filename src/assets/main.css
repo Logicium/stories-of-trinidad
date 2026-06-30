@@ -1,59 +1,82 @@
-/* AR Mitchell Western + Art Gallery Aesthetic - Global Styles */
+/* ============================================================
+   Stories of Trinidad — Editorial Heritage Design System
+   A gallery-grade visual language: archival paper, deep ink,
+   a single restrained brass accent, and a confident type pairing.
+   ============================================================ */
 
 :root {
-  /* Warm, flat Western colors */
-  --color-sand: #E8D5B7;
-  --color-terracotta: #C97D60;
-  --color-rust: #9B4F3E;
-  --color-sage: #A4B494;
-  --color-clay: #D4A574;
-  --color-charcoal: #3E3E3E;
-  --color-warm-white: #F9F6F1;
-  --color-deep-brown: #4A3428;
-  
-  /* Gallery aesthetic colors */
-  --color-gallery-gray: #F5F5F5;
-  --color-accent-gold: #C8A882;
-  
-  /* Semantic colors */
-  --color-background: var(--color-warm-white);
-  --color-surface: #FFFFFF;
-  --color-text-primary: var(--color-deep-brown);
-  --color-text-secondary: #6B5D54;
-  --color-border: rgba(78, 52, 40, 0.1);
-  --color-shadow: rgba(78, 52, 40, 0.1);
-  
-  /* Typography */
-  --font-display: 'Playfair Display', 'Georgia', serif;
-  --font-body: 'Lato', 'Helvetica Neue', sans-serif;
-  --font-accent: 'Cormorant Garamond', 'Times New Roman', serif;
-  
-  /* Spacing */
-  --spacing-xs: 0.5rem;
-  --spacing-sm: 0.75rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --spacing-2xl: 3rem;
-  
-  /* Border radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  
-  /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-base: 250ms ease;
-  --transition-slow: 350ms ease;
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 2px var(--color-shadow);
-  --shadow-md: 0 4px 8px var(--color-shadow);
-  --shadow-lg: 0 8px 16px var(--color-shadow);
+  /* ---- Ink & Paper ---------------------------------------- */
+  --ink: #211C17;          /* primary text / near-black, warm */
+  --ink-2: #4A4138;        /* secondary text */
+  --ink-3: #897E6F;        /* muted meta / captions */
+  --paper: #F2ECE1;        /* page background — warm bone */
+  --paper-2: #EAE2D3;      /* subtle alternating band */
+  --surface: #FBF8F2;      /* elevated cards / panels */
+  --surface-ink: #1B1712;  /* dark inverted surfaces */
+
+  /* ---- Lines ---------------------------------------------- */
+  --line: rgba(33, 28, 23, 0.13);
+  --line-2: rgba(33, 28, 23, 0.24);
+  --line-on-dark: rgba(245, 238, 226, 0.18);
+
+  /* ---- Accents (used with restraint) --------------------- */
+  --brass: #9C7A41;        /* refined heritage accent */
+  --brass-2: #B9954F;      /* brass hover / highlight */
+  --ember: #B5522C;        /* warm terracotta — active audio only */
+
+  /* ---- Semantic ------------------------------------------ */
+  --bg: var(--paper);
+  --text: var(--ink);
+  --text-soft: var(--ink-2);
+  --text-mute: var(--ink-3);
+
+  /* ---- Typography ---------------------------------------- */
+  --font-display: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Fluid type scale */
+  --fs-mega: clamp(3.4rem, 11vw, 8rem);
+  --fs-display: clamp(2.6rem, 7vw, 5rem);
+  --fs-h1: clamp(2rem, 5vw, 3.25rem);
+  --fs-h2: clamp(1.6rem, 3.4vw, 2.4rem);
+  --fs-h3: clamp(1.25rem, 2.2vw, 1.6rem);
+  --fs-lead: clamp(1.05rem, 1.6vw, 1.3rem);
+  --fs-body: 1.0625rem;
+  --fs-sm: 0.875rem;
+  --fs-eyebrow: 0.72rem;
+
+  /* ---- Spacing ------------------------------------------- */
+  --sp-1: 0.5rem;
+  --sp-2: 0.75rem;
+  --sp-3: 1rem;
+  --sp-4: 1.5rem;
+  --sp-5: 2rem;
+  --sp-6: 3rem;
+  --sp-7: 4.5rem;
+  --sp-8: 7rem;
+
+  /* ---- Layout -------------------------------------------- */
+  --measure: 40rem;        /* reading width */
+  --container: 78rem;      /* page max width */
+  --radius: 2px;           /* minimal, architectural */
+  --radius-lg: 4px;
+
+  /* ---- Motion -------------------------------------------- */
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --t-fast: 200ms var(--ease);
+  --t: 380ms var(--ease);
+  --t-slow: 720ms var(--ease-out);
+
+  /* ---- Shadows (soft, expensive) ------------------------- */
+  --shadow-sm: 0 1px 2px rgba(33, 28, 23, 0.05);
+  --shadow: 0 2px 6px rgba(33, 28, 23, 0.06), 0 18px 40px -22px rgba(33, 28, 23, 0.28);
+  --shadow-lg: 0 4px 12px rgba(33, 28, 23, 0.08), 0 40px 80px -30px rgba(33, 28, 23, 0.4);
 }
 
-* {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -62,100 +85,171 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   font-size: 16px;
   scroll-behavior: smooth;
 }
 
 body {
-  font-family: var(--font-body);
-  font-size: 1rem;
-  line-height: 1.6;
-  color: var(--color-text-primary);
-  background-color: var(--color-background);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: 1.65;
+  color: var(--text);
+  background-color: var(--bg);
   overflow-x: hidden;
+  font-feature-settings: 'kern' 1, 'liga' 1;
 }
 
-/* Typography */
+/* Subtle paper grain — adds the "expensive print" texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.025;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---- Headings ------------------------------------------- */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
-  font-weight: 600;
-  line-height: 1.2;
-  margin-bottom: var(--spacing-md);
-  color: var(--color-deep-brown);
-}
-
-h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-h2 {
-  font-size: 2rem;
-  letter-spacing: -0.01em;
-}
-
-h3 {
-  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.05;
+  color: var(--ink);
+  font-optical-sizing: auto;
+  letter-spacing: -0.015em;
 }
 
 p {
-  margin-bottom: var(--spacing-md);
-  color: var(--color-text-secondary);
+  color: var(--text-soft);
 }
 
 a {
-  color: var(--color-rust);
+  color: inherit;
   text-decoration: none;
-  transition: color var(--transition-fast);
+  transition: color var(--t-fast);
 }
 
-a:hover {
-  color: var(--color-terracotta);
-}
-
-/* Button styles */
 button {
-  font-family: var(--font-body);
+  font-family: var(--font-sans);
   border: none;
+  background: none;
   cursor: pointer;
-  transition: all var(--transition-base);
+  color: inherit;
 }
 
-/* Mobile optimizations */
-@media (max-width: 768px) {
-  html {
-    font-size: 14px;
-  }
-  
-  h1 {
-    font-size: 2rem;
-  }
-  
-  h2 {
-    font-size: 1.75rem;
-  }
+img {
+  display: block;
+  max-width: 100%;
 }
 
-/* Utility classes */
+::selection {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* ============================================================
+   Reusable editorial primitives
+   ============================================================ */
+
+/* Eyebrow / kicker — small caps tracked label */
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--fs-eyebrow);
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.eyebrow--brass { color: var(--brass); }
+
 .container {
   width: 100%;
-  max-width: 100%;
+  max-width: var(--container);
   margin: 0 auto;
+  padding-inline: clamp(1.25rem, 5vw, 4rem);
 }
 
-.text-center {
-  text-align: center;
+.rule {
+  height: 1px;
+  background: var(--line);
+  border: 0;
+}
+
+/* Index numeral, e.g. 01 / 03 — the catalog signature */
+.numeral {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-variant-numeric: lining-nums;
+  letter-spacing: 0;
+  color: var(--brass);
+}
+
+/* Pill button — minimal, architectural */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 0.85em 1.5em;
+  border-radius: 100px;
+  border: 1px solid var(--line-2);
+  color: var(--ink);
+  background: transparent;
+  transition: background var(--t-fast), color var(--t-fast),
+              border-color var(--t-fast), transform var(--t-fast);
+}
+.btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.btn:active { transform: scale(0.98); }
+
+.btn--solid {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.btn--solid:hover {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: #fff;
 }
 
 .sr-only {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
-  border-width: 0;
+  border: 0;
+}
+
+/* Reveal-on-scroll utility (driven by a small directive/observer) */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 900ms var(--ease-out), transform 900ms var(--ease-out);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1; transform: none; }
 }

@@ -14,6 +14,11 @@ export interface LocationData {
     lat: number
     lng: number
   }
+  /** Editorial / tourist metadata (optional) */
+  era?: string        // e.g. "Built 1910"
+  style?: string      // e.g. "Neo-Classical · Civic"
+  duration?: string   // e.g. "5 min listen"
+  teaser?: string     // one-line hook for the index
 }
 
 export const locationsData: LocationData[] = [
@@ -21,6 +26,10 @@ export const locationsData: LocationData[] = [
     id: 1,
     name: 'Trinidad, CO Post Office',
     description: '301 E. Main St.',
+    era: 'Built 1910',
+    style: 'Neo-Classical · Civic',
+    duration: '5 min listen',
+    teaser: 'Ionic columns on Millionaire’s Row — and the day Mother Jones lit the fuse.',
     images: [
       { url: '/images/post1.jpg', alt: 'U.S. Post Office exterior' },
       { url: '/images/post2.jpg', alt: 'Post Office architectural detail' },
@@ -44,6 +53,10 @@ In the intersection of Main and Walnut at the end of this block, the cavalry wai
     id: 2,
     name: 'Trinidad Opera House',
     description: '100-116 W. Main St.',
+    era: 'Built 1883',
+    style: 'Victorian · Stonework',
+    duration: '4 min listen',
+    teaser: 'The Jaffa brothers’ frontier landmark, crowned by an oval stained-glass sky.',
     images: [
       { url: '/images/Opera1.JPG', alt: 'Trinidad Opera House exterior' },
       { url: '/images/Opera2.png', alt: 'Opera House architectural detail' },
@@ -63,6 +76,10 @@ As with most so-called opera houses in the West, precious little opera was ever 
     id: 3,
     name: 'Fox Theatre',
     description: '423 W. Main St.',
+    era: 'Opened 1908',
+    style: 'Vaudeville · Grand',
+    duration: '6 min listen',
+    teaser: 'A double-tiered balcony, a 71-foot stage, and West Main’s wilder past.',
     images: [
       { url: '/images/fox1.jpg', alt: 'Fox Theatre exterior' },
       { url: '/images/fox2.jpg', alt: 'Fox Theatre facade' },

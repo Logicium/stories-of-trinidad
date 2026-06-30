@@ -1,90 +1,11 @@
-<template>
-  <div class="audio-player">
-    <audio 
-      ref="audioElement"
-      :src="audioUrl"
-      @timeupdate="updateProgress"
-      @loadedmetadata="onLoadedMetadata"
-      @ended="onEnded"
-    ></audio>
-    
-    <div class="player-container">
-      <div class="player-header">
-        <h3 class="player-title">Audio Tour</h3>
-        <div class="duration-display">
-          <span class="current-time">{{ formatTime(currentTime) }}</span>
-          <span class="separator">/</span>
-          <span class="total-time">{{ formatTime(duration) }}</span>
-        </div>
-      </div>
-      
-      <div class="progress-container" @click="seek">
-        <div class="progress-bar">
-          <div 
-            class="progress-fill"
-            :style="{ width: `${progress}%` }"
-          ></div>
-          <div 
-            class="progress-handle"
-            :style="{ left: `${progress}%` }"
-          ></div>
-        </div>
-      </div>
-      
-      <div class="player-controls">
-        <button 
-          @click="toggleMute"
-          class="control-button secondary"
-          aria-label="Toggle mute"
-        >
-          <Volume2 v-if="!isMuted" :size="20" />
-          <VolumeX v-else :size="20" />
-        </button>
-        
-        <button 
-          @click="skipBackward"
-          class="control-button secondary"
-          aria-label="Skip backward 15 seconds"
-        >
-          <RotateCcw :size="20" />
-        </button>
-        
-        <button 
-          @click="togglePlay"
-          class="control-button primary"
-          aria-label="Play/Pause"
-        >
-          <Play v-if="!isPlaying" :size="28" />
-          <Pause v-else :size="28" />
-        </button>
-        
-        <button 
-          @click="skipForward"
-          class="control-button secondary"
-          aria-label="Skip forward 15 seconds"
-        >
-          <RotateCw :size="20" />
-        </button>
-        
-        <button 
-          @click="toggleCaptions"
-          class="control-button secondary cc-button"
-          :class="{ active: captionsEnabled }"
-          aria-label="Toggle captions"
-        >
-          <span class="cc-text">CC</span>
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
-import { Play, Pause, RotateCw, RotateCcw, Volume2, VolumeX } from 'lucide-vue-next'
+import { ref, computed, onUnmounted } from 'vue'
+import { Play, Pause, RotateCw, RotateCcw, Captions } from 'lucide-vue-next'
 
 interface Props {
   audioUrl: string
+  title?: string
+  subtitle?: string
 }
 
 const props = defineProps<Props>()
@@ -96,17 +17,20 @@ const audioElement = ref<HTMLAudioElement | null>(null)
 const isPlaying = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
-const progress = ref(0)
 const captionsEnabled = ref(false)
-const isMuted = ref(false)
+const hasStarted = ref(false)
+
+const progress = computed(() =>
+  duration.value ? (currentTime.value / duration.value) * 100 : 0,
+)
 
 const togglePlay = () => {
   if (!audioElement.value) return
-  
   if (isPlaying.value) {
     audioElement.value.pause()
   } else {
     audioElement.value.play()
+    hasStarted.value = true
   }
   isPlaying.value = !isPlaying.value
 }
@@ -114,54 +38,35 @@ const togglePlay = () => {
 const updateProgress = () => {
   if (!audioElement.value) return
   currentTime.value = audioElement.value.currentTime
-  progress.value = (currentTime.value / duration.value) * 100
 }
-
 const onLoadedMetadata = () => {
   if (!audioElement.value) return
   duration.value = audioElement.value.duration
 }
-
 const onEnded = () => {
   isPlaying.value = false
   currentTime.value = 0
-  progress.value = 0
 }
 
 const seek = (event: MouseEvent) => {
   if (!audioElement.value) return
-  const progressBar = event.currentTarget as HTMLElement
-  const rect = progressBar.getBoundingClientRect()
-  const x = event.clientX - rect.left
-  const percentage = x / rect.width
+  const bar = event.currentTarget as HTMLElement
+  const rect = bar.getBoundingClientRect()
+  const percentage = (event.clientX - rect.left) / rect.width
   audioElement.value.currentTime = percentage * duration.value
 }
 
 const skipForward = () => {
   if (!audioElement.value) return
-  audioElement.value.currentTime = Math.min(
-    audioElement.value.currentTime + 15,
-    duration.value
-  )
+  audioElement.value.currentTime = Math.min(audioElement.value.currentTime + 15, duration.value)
 }
-
 const skipBackward = () => {
   if (!audioElement.value) return
-  audioElement.value.currentTime = Math.max(
-    audioElement.value.currentTime - 15,
-    0
-  )
+  audioElement.value.currentTime = Math.max(audioElement.value.currentTime - 15, 0)
 }
-
 const toggleCaptions = () => {
   captionsEnabled.value = !captionsEnabled.value
   emit('toggleCaptions', captionsEnabled.value)
-}
-
-const toggleMute = () => {
-  if (!audioElement.value) return
-  isMuted.value = !isMuted.value
-  audioElement.value.muted = isMuted.value
 }
 
 const formatTime = (seconds: number): string => {
@@ -172,180 +77,236 @@ const formatTime = (seconds: number): string => {
 }
 
 onUnmounted(() => {
-  if (audioElement.value) {
-    audioElement.value.pause()
-  }
+  if (audioElement.value) audioElement.value.pause()
 })
 </script>
 
+<template>
+  <div class="dock" :class="{ playing: isPlaying }">
+    <audio
+      ref="audioElement"
+      :src="audioUrl"
+      @timeupdate="updateProgress"
+      @loadedmetadata="onLoadedMetadata"
+      @ended="onEnded"
+    ></audio>
+
+    <!-- Seekable progress along the very top edge -->
+    <div class="seek" @click="seek">
+      <div class="seek-fill" :style="{ width: `${progress}%` }"></div>
+      <div class="seek-knob" :style="{ left: `${progress}%` }"></div>
+    </div>
+
+    <div class="dock-inner">
+      <!-- Now playing -->
+      <div class="now">
+        <span class="eyebrow now-kicker">{{ isPlaying ? 'Now Playing' : 'Audio Tour' }}</span>
+        <span class="now-title">{{ title }}</span>
+        <span v-if="subtitle" class="now-sub">{{ subtitle }}</span>
+      </div>
+
+      <!-- Transport -->
+      <div class="transport">
+        <button class="ctrl" @click="skipBackward" aria-label="Back 15 seconds">
+          <RotateCcw :size="19" :stroke-width="1.7" />
+          <span class="ctrl-sec">15</span>
+        </button>
+
+        <button class="ctrl ctrl--play" @click="togglePlay" aria-label="Play or pause">
+          <Play v-if="!isPlaying" :size="22" :stroke-width="1.8" class="play-ic" />
+          <Pause v-else :size="22" :stroke-width="1.8" />
+        </button>
+
+        <button class="ctrl" @click="skipForward" aria-label="Forward 15 seconds">
+          <RotateCw :size="19" :stroke-width="1.7" />
+          <span class="ctrl-sec">15</span>
+        </button>
+      </div>
+
+      <!-- Time + captions -->
+      <div class="aux">
+        <span class="time">
+          <span class="t-now">{{ formatTime(currentTime) }}</span>
+          <span class="t-sep">/</span>
+          <span class="t-dur">{{ formatTime(duration) }}</span>
+        </span>
+        <button
+          class="cc"
+          :class="{ active: captionsEnabled }"
+          @click="toggleCaptions"
+          aria-label="Toggle transcript captions"
+        >
+          <Captions :size="18" :stroke-width="1.7" />
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
-.audio-player {
-  width: 100%;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
+.dock {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 90;
+  background: color-mix(in srgb, var(--surface-ink) 92%, transparent);
+  backdrop-filter: saturate(1.2) blur(18px);
+  -webkit-backdrop-filter: saturate(1.2) blur(18px);
+  border-top: 1px solid var(--line-on-dark);
+  color: var(--paper);
+  box-shadow: 0 -20px 50px -30px rgba(0,0,0,0.7);
 }
 
-.player-container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: var(--spacing-xl) var(--spacing-lg);
-}
-
-.player-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-lg);
-}
-
-.player-title {
-  font-family: var(--font-accent);
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--color-deep-brown);
-  margin: 0;
-}
-
-.duration-display {
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-  display: flex;
-  gap: var(--spacing-xs);
-  align-items: center;
-}
-
-.progress-container {
-  margin-bottom: var(--spacing-xl);
-  cursor: pointer;
-  padding: var(--spacing-sm) 0;
-}
-
-.progress-bar {
+/* Seek bar on the top edge */
+.seek {
   position: relative;
-  height: 4px;
-  background: var(--color-sand);
-  border-radius: 2px;
-  overflow: visible;
+  height: 3px;
+  background: rgba(245,238,226,0.12);
+  cursor: pointer;
 }
-
-.progress-fill {
+.seek::before {
+  content: '';
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: -8px 0;            /* generous click target */
+}
+.seek-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
   height: 100%;
-  background: var(--color-rust);
-  border-radius: 2px;
+  background: var(--ember);
   transition: width 0.1s linear;
 }
-
-.progress-handle {
+.seek-knob {
   position: absolute;
   top: 50%;
-  transform: translate(-50%, -50%);
-  width: 16px;
-  height: 16px;
-  background: var(--color-rust);
-  border: 3px solid white;
+  width: 11px; height: 11px;
   border-radius: 50%;
-  box-shadow: var(--shadow-sm);
-  transition: left 0.1s linear;
+  background: var(--ember);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 35%, transparent);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform var(--t-fast), left 0.1s linear;
+}
+.dock:hover .seek-knob, .dock.playing .seek-knob { transform: translate(-50%, -50%) scale(1); }
+
+.dock-inner {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0.85rem clamp(1rem, 5vw, 4rem);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
 }
 
-.player-controls {
+/* Now playing */
+.now {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: var(--spacing-lg);
-  margin-bottom: 0;
+  flex-direction: column;
+  min-width: 0;
+}
+.now-kicker { color: var(--brass-2); margin-bottom: 0.25rem; }
+.now-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.15rem;
+  line-height: 1.15;
+  color: var(--paper);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.now-sub {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: rgba(245,238,226,0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0.15rem;
 }
 
-.control-button {
-  border: none;
-  background: none;
-  color: var(--color-deep-brown);
+/* Transport */
+.transport {
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition-base);
+  gap: 0.5rem;
+}
+.ctrl {
   position: relative;
-  padding: 0;
+  width: 46px; height: 46px;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
+  color: rgba(245,238,226,0.8);
+  transition: color var(--t-fast), background var(--t-fast), transform var(--t-fast);
 }
-
-.control-button.primary {
-  width: 64px;
-  height: 64px;
-  background: var(--color-rust);
-  color: white;
-  box-shadow: var(--shadow-md);
+.ctrl:hover { color: #fff; background: rgba(245,238,226,0.08); }
+.ctrl:active { transform: scale(0.92); }
+.ctrl-sec {
+  position: absolute;
+  bottom: 6px;
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(245,238,226,0.55);
 }
-
-.control-button.primary:hover {
-  background: var(--color-terracotta);
-  transform: scale(1.05);
-  box-shadow: var(--shadow-lg);
+.ctrl--play {
+  width: 58px; height: 58px;
+  background: var(--paper);
+  color: var(--ink);
 }
-
-.control-button.primary:active {
-  transform: scale(0.95);
-}
-
-.control-button.secondary {
-  width: 44px;
-  height: 44px;
-  background: transparent;
-  color: var(--color-text-secondary);
-  border: 2px solid var(--color-border);
-}
-
-.control-button.secondary:hover {
-  color: var(--color-rust);
-  border-color: var(--color-rust);
+.ctrl--play:hover {
+  background: #fff;
+  color: var(--ink);
   transform: scale(1.05);
 }
+.ctrl--play:active { transform: scale(0.96); }
+.play-ic { margin-left: 2px; } /* optically center the triangle */
 
-.control-button.secondary:active {
-  transform: scale(0.95);
+/* Aux */
+.aux {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+.time {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: rgba(245,238,226,0.65);
+}
+.t-sep { margin: 0 0.35em; opacity: 0.5; }
+.t-now { color: var(--paper); }
+.cc {
+  width: 42px; height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: rgba(245,238,226,0.7);
+  border: 1px solid var(--line-on-dark);
+  transition: all var(--t-fast);
+}
+.cc:hover { color: #fff; border-color: rgba(245,238,226,0.4); }
+.cc.active {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: #fff;
 }
 
-.control-button.secondary.active {
-  background: var(--color-rust);
-  border-color: var(--color-rust);
-  color: white;
-}
-
-.cc-button .cc-text {
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-}
-
-/* Mobile optimizations */
-@media (max-width: 768px) {
-  .player-container {
-    padding: var(--spacing-lg) var(--spacing-md);
+@media (max-width: 720px) {
+  .dock-inner {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 'now transport';
+    gap: 0.5rem 1rem;
+    padding: 0.7rem 1.1rem;
   }
-  
-  .player-title {
-    font-size: 1.1rem;
-  }
-  
-  .control-button.primary {
-    width: 56px;
-    height: 56px;
-  }
-  
-  .control-button.secondary {
-    width: 40px;
-    height: 40px;
-  }
-  
-  .player-controls {
-    gap: var(--spacing-md);
-  }
+  .now { grid-area: now; }
+  .transport { grid-area: transport; gap: 0.25rem; }
+  .aux { display: none; }       /* time/cc fold away on small screens */
+  .now-sub { display: none; }
+  .ctrl { width: 42px; height: 42px; }
+  .ctrl--play { width: 52px; height: 52px; }
 }
 </style>

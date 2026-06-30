@@ -1,81 +1,14 @@
-<template>
-  <div class="slideshow-container">
-    <!-- Blurred background image that covers everything -->
-    <transition name="fade" mode="out-in">
-      <img 
-        :key="'blur-' + currentIndex"
-        :src="images[currentIndex]?.url || ''" 
-        :alt="''"
-        class="background-image"
-      />
-    </transition>
-    
-    <div class="slideshow-content">
-      <!-- Location name overlay at top -->
-      <div class="location-header">
-        <h1 class="location-name">{{ locationName }}</h1>
-      </div>
-      
-      <!-- Clear main image -->
-      <div class="image-container">
-        <transition name="fade" mode="out-in">
-          <img 
-            :key="'main-' + currentIndex"
-            :src="images[currentIndex]?.url || ''" 
-            :alt="images[currentIndex]?.alt || ''"
-            class="main-image"
-          />
-        </transition>
-      </div>
-      
-      <!-- Controls in blurred area -->
-      <div class="slideshow-controls">
-        <button 
-          @click="previousImage"
-          class="control-btn"
-          :disabled="images.length <= 1"
-          aria-label="Previous image"
-        >
-          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-        </button>
-        
-        <div class="image-thumbnails">
-          <button
-            v-for="(image, index) in images"
-            :key="index"
-            @click="goToImage(index)"
-            class="thumbnail"
-            :class="{ active: index === currentIndex }"
-            :aria-label="`Go to image ${index + 1}`"
-          >
-            <img :src="image.url" :alt="image.alt" />
-          </button>
-        </div>
-        
-        <button 
-          @click="nextImage"
-          class="control-btn"
-          :disabled="images.length <= 1"
-          aria-label="Next image"
-        >
-          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import type { LocationImage } from '@/stores/locations'
 
 interface Props {
   images: LocationImage[]
   locationName: string
+  address?: string
+  era?: string
+  stopLabel?: string
 }
 
 const props = defineProps<Props>()
@@ -84,241 +17,207 @@ const currentIndex = ref(0)
 const nextImage = () => {
   currentIndex.value = (currentIndex.value + 1) % props.images.length
 }
-
 const previousImage = () => {
-  currentIndex.value = currentIndex.value === 0 
-    ? props.images.length - 1 
-    : currentIndex.value - 1
+  currentIndex.value =
+    currentIndex.value === 0 ? props.images.length - 1 : currentIndex.value - 1
 }
-
 const goToImage = (index: number) => {
   currentIndex.value = index
 }
 </script>
 
+<template>
+  <section class="hero-slideshow">
+    <!-- Full-bleed imagery -->
+    <div class="stage">
+      <transition-group name="kenburns" tag="div" class="stage-inner">
+        <img
+          v-for="(image, index) in images"
+          v-show="index === currentIndex"
+          :key="index"
+          :src="image.url"
+          :alt="image.alt"
+          class="stage-img"
+        />
+      </transition-group>
+      <div class="scrim"></div>
+    </div>
+
+    <!-- Overlay content -->
+    <div class="hero-overlay">
+      <div class="hero-overlay-inner">
+        <span v-if="stopLabel" class="eyebrow stop-label">{{ stopLabel }}</span>
+        <h1 class="hero-name">{{ locationName }}</h1>
+        <p v-if="address || era" class="hero-sub">
+          <span v-if="address">{{ address }}</span>
+          <span v-if="address && era" class="sep" aria-hidden="true"></span>
+          <span v-if="era">{{ era }}</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div v-if="images.length > 1" class="controls">
+      <button class="nav-btn" @click="previousImage" aria-label="Previous image">
+        <ChevronLeft :size="22" :stroke-width="1.5" />
+      </button>
+
+      <div class="ticks" role="tablist">
+        <button
+          v-for="(image, index) in images"
+          :key="index"
+          class="tick"
+          :class="{ active: index === currentIndex }"
+          @click="goToImage(index)"
+          :aria-label="`View image ${index + 1}`"
+          :aria-selected="index === currentIndex"
+        ></button>
+      </div>
+
+      <button class="nav-btn" @click="nextImage" aria-label="Next image">
+        <ChevronRight :size="22" :stroke-width="1.5" />
+      </button>
+    </div>
+  </section>
+</template>
+
 <style scoped>
-.slideshow-container {
+.hero-slideshow {
   position: relative;
   width: 100%;
-  height: 75vh;
-  min-height: 550px;
-  max-height: 800px;
+  height: 92svh;
+  min-height: 540px;
+  max-height: 920px;
   overflow: hidden;
+  background: var(--surface-ink);
 }
 
-.background-image {
+.stage, .stage-inner { position: absolute; inset: 0; }
+.stage-img {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: blur(20px) brightness(0.6);
-  transform: scale(1.1);
-  z-index: 0;
+}
+/* Subtle Ken Burns drift on the active slide */
+.kenburns-enter-active { transition: opacity 900ms var(--ease); }
+.kenburns-leave-active { transition: opacity 900ms var(--ease); }
+.kenburns-enter-from, .kenburns-leave-to { opacity: 0; }
+.stage-img { animation: kb 16s ease-out both; }
+@keyframes kb {
+  from { transform: scale(1.03); }
+  to { transform: scale(1.1); }
 }
 
-.slideshow-content {
-  position: relative;
-  height: 100%;
+.scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(20,16,12,0.45) 0%, rgba(20,16,12,0) 28%),
+    linear-gradient(0deg, rgba(20,16,12,0.82) 0%, rgba(20,16,12,0.15) 42%, rgba(20,16,12,0) 70%);
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
   display: flex;
-  flex-direction: column;
-  z-index: 1;
+  align-items: flex-end;
+  z-index: 2;
+  padding: clamp(2rem, 6vw, 5rem) 0;
 }
-
-.location-header {
-  padding: var(--spacing-2xl) var(--spacing-lg);
-  background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%);
-  flex-shrink: 0;
+.hero-overlay-inner {
+  width: 100%;
+  max-width: var(--container);
+  margin: 0 auto;
+  padding-inline: clamp(1.25rem, 5vw, 4rem);
+  padding-bottom: 2.5rem;
 }
-
-.location-name {
-  font-family: 'Playfair Display', serif;
-  font-size: 3.5rem;
+.stop-label {
+  display: block;
+  color: var(--brass-2);
+  margin-bottom: 1.25rem;
+  animation: rise 800ms var(--ease-out) both;
+}
+.hero-name {
   font-weight: 400;
-  color: white;
-  text-align: center;
-  margin: 0;
+  font-style: italic;
+  font-size: clamp(2.6rem, 8vw, 6rem);
+  line-height: 0.95;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  color: #fff;
+  max-width: 18ch;
+  margin-bottom: 1.25rem;
+  text-shadow: 0 2px 40px rgba(0,0,0,0.35);
+  animation: rise 900ms var(--ease-out) 80ms both;
 }
-
-.image-container {
-  flex: 1;
-  position: relative;
-  width: 100%;
-  padding: 0;
-  overflow: hidden;
-  min-height: 0;
+.hero-sub {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.82);
+  margin: 0;
+  animation: rise 900ms var(--ease-out) 180ms both;
+}
+.hero-sub .sep {
+  width: 18px; height: 1px;
+  background: rgba(255,255,255,0.45);
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
 }
 
-.main-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-  z-index: 1;
-}
-
-.slideshow-controls {
+/* Controls */
+.controls {
+  position: absolute;
+  z-index: 3;
+  right: clamp(1.25rem, 5vw, 4rem);
+  bottom: clamp(2rem, 6vw, 3.5rem);
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: var(--spacing-2xl) var(--spacing-lg);
-  background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
-  gap: var(--spacing-lg);
-  flex-shrink: 0;
+  gap: 1.25rem;
 }
-
-.control-btn {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-base);
-  flex-shrink: 0;
-  padding: 0;
-  height: 56px;
-  cursor: pointer;
+.nav-btn {
+  width: 46px; height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.28);
+  background: rgba(20,16,12,0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast);
 }
-
-.control-btn:hover:not(:disabled) {
-  color: white;
-  transform: scale(1.1);
+.nav-btn:hover {
+  background: #fff;
+  color: var(--ink);
+  border-color: #fff;
 }
+.nav-btn:active { transform: scale(0.94); }
 
-.control-btn:active:not(:disabled) {
-  transform: scale(0.95);
+.ticks { display: flex; gap: 0.55rem; align-items: center; }
+.tick {
+  width: 26px; height: 2px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.35);
+  transition: background var(--t), width var(--t);
 }
+.tick.active { background: #fff; width: 38px; }
 
-.control-btn:disabled {
-  opacity: 0.2;
-  cursor: not-allowed;
-}
-
-.image-thumbnails {
-  display: flex;
-  gap: var(--spacing-sm);
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  max-width: 600px;
-}
-
-.thumbnail {
-  width: 56px;
-  height: 56px;
-  border-radius: 4px;
-  overflow: hidden;
-  border: none;
-  padding: 0;
-  background: none;
-  cursor: pointer;
-  transition: all var(--transition-base);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-.thumbnail img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  opacity: 0.6;
-  transition: all var(--transition-base);
-}
-
-.thumbnail:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-}
-
-.thumbnail:hover img {
-  opacity: 0.9;
-}
-
-.thumbnail.active {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-  transform: scale(1.08);
-}
-
-.thumbnail.active img {
-  opacity: 1;
-}
-
-/* Fade transition */
-.fade-enter-active, .fade-leave-active {
-  transition: opacity var(--transition-base);
-}
-
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
-
-/* Mobile optimizations */
-@media (max-width: 768px) {
-  .slideshow-container {
-    height: 65vh;
-    min-height: 450px;
+@media (max-width: 640px) {
+  .hero-slideshow { height: 78svh; min-height: 460px; }
+  .controls {
+    left: 0; right: 0;
+    justify-content: center;
+    bottom: 1.5rem;
   }
-  
-  .location-name {
-    font-size: 2.25rem;
-  }
-  
-  .location-header {
-    padding: var(--spacing-xl) var(--spacing-md);
-  }
-  
-  .slideshow-controls {
-    padding: var(--spacing-xl) var(--spacing-md);
-    gap: var(--spacing-md);
-  }
-  
-  .control-btn {
-    height: 44px;
-  }
-  
-  .control-btn svg {
-    width: 36px;
-    height: 44px;
-  }
-  
-  .thumbnail {
-    width: 44px;
-    height: 44px;
-  }
-}
-
-@media (max-width: 480px) {
-  .location-name {
-    font-size: 1.85rem;
-  }
-  
-  .slideshow-controls {
-    gap: var(--spacing-sm);
-  }
-  
-  .control-btn {
-    height: 40px;
-  }
-  
-  .control-btn svg {
-    width: 32px;
-    height: 40px;
-  }
-  
-  .thumbnail {
-    width: 40px;
-    height: 40px;
-  }
-  
-  .image-thumbnails {
-    gap: 6px;
-  }
+  .nav-btn { width: 42px; height: 42px; }
 }
 </style>
