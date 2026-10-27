@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { content } from '@/data/site'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { QrCode, ArrowLeft, X } from 'lucide-vue-next'
@@ -31,22 +32,38 @@ const goBack = () => router.push({ name: 'home' })
       <div class="bar-left">
         <button v-if="isDetail" class="back" @click="goBack" aria-label="Back to all stops">
           <ArrowLeft :size="17" :stroke-width="1.6" />
-          <span>All Stops</span>
+          <span>{{ content.header.backLabel }}</span>
         </button>
-        <span v-else class="locale eyebrow">Trinidad · Colorado</span>
+        <span v-else class="locale eyebrow">{{ content.header.locale }}</span>
       </div>
 
-      <!-- Center wordmark -->
-      <RouterLink to="/" class="wordmark" aria-label="Stories of Trinidad — home">
-        <span class="wm-line">Stories of</span>
-        <span class="wm-mark">Trinidad</span>
+      <!-- Center wordmark: Trinidad snowflake over the name.
+           Four mirrored glyphs from the brand kit; never rebuild it by rotation. -->
+      <RouterLink to="/" class="wordmark" aria-label="Stories of Trinidad, home">
+        <!-- Small-size geometry (strokes thickened evenly), as in the kit's favicon -->
+        <svg class="wm-snow" viewBox="-131 -131 262 262" aria-hidden="true">
+          <g fill="currentColor">
+            <g id="sot-snow-q">
+              <rect x="-29" y="-128" width="18" height="117" />
+              <rect x="-128" y="-29" width="117" height="18" />
+              <rect x="-84" y="-124" width="18" height="58" />
+              <rect x="-124" y="-84" width="58" height="18" />
+              <polygon points="-115.636,-128.364 -13.636,-26.364 -26.364,-13.636 -128.364,-115.636" />
+            </g>
+            <use href="#sot-snow-q" transform="scale(-1,1)" />
+            <use href="#sot-snow-q" transform="scale(1,-1)" />
+            <use href="#sot-snow-q" transform="scale(-1,-1)" />
+          </g>
+        </svg>
+        <span class="wm-line">{{ content.header.wordmarkLine }}</span>
+        <span class="wm-mark">{{ content.header.wordmarkName }}</span>
       </RouterLink>
 
       <!-- Right: scan affordance -->
       <div class="bar-right">
         <button class="scan" @click="scanOpen = true">
           <QrCode :size="16" :stroke-width="1.6" />
-          <span>Scan</span>
+          <span>{{ content.header.scanLabel }}</span>
         </button>
       </div>
     </div>
@@ -119,6 +136,14 @@ const goBack = () => router.push({ name: 'home' })
   line-height: 0.96;
   text-align: center;
 }
+.wm-snow {
+  display: block;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 6px;
+  color: #8A3818; /* brand rust; one color per mark */
+  transition: color var(--t-fast);
+}
 .wm-line {
   font-family: var(--font-sans);
   font-size: 0.62rem;
@@ -165,6 +190,8 @@ const goBack = () => router.push({ name: 'home' })
 }
 
 /* ---- Light chrome over the story hero ---- */
+/* Brand rule: cream on dark, never a shadow or outline on the mark */
+.site-header.over-hero .wm-snow { color: #F6EEDC; }
 .site-header.over-hero .wm-mark { color: #fff; }
 .site-header.over-hero .wm-line { color: rgba(255, 255, 255, 0.72); }
 .site-header.over-hero .back,

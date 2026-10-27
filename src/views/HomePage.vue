@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { content } from '@/data/site'
 import { useRouter } from 'vue-router'
 import { useLocationsStore, type Location } from '@/stores/locations'
 import { useGeolocation } from '@/composables/useGeolocation'
@@ -102,7 +103,9 @@ onMounted(() => request())
       <!-- Map key — badges aligned to the same content grid as the hero text -->
       <div class="container hero-key-wrap">
         <ul class="hero-key">
-          <li class="key-label eyebrow">{{ coords ? 'Nearest stops' : 'Start of the loop' }}</li>
+          <li class="key-label eyebrow">
+            {{ coords ? content.hero.keyLabelNearest : content.hero.keyLabelStart }}
+          </li>
           <li
             v-for="(stop, i) in loopStops"
             :key="stop.id"
@@ -113,7 +116,7 @@ onMounted(() => request())
             <span class="key-name">{{ stop.name }}</span>
           </li>
           <li class="key-badge key-badge--all" @click="scrollToStops">
-            <span class="key-name">All {{ stopCount }} stops</span>
+            <span class="key-name">{{ content.hero.allStopsLabel }} {{ stopCount }} stops</span>
             <span class="key-arrow">↓</span>
           </li>
         </ul>
@@ -122,22 +125,19 @@ onMounted(() => request())
       <div class="container hero-copy-wrap">
         <!-- Left: editorial intro -->
         <div class="hero-copy">
-          <p class="eyebrow eyebrow--brass hero-kicker">Self-guided audio walking tour</p>
+          <p class="eyebrow eyebrow--brass hero-kicker">{{ content.hero.kicker }}</p>
 
           <h1 class="hero-title">
-            <span class="ht-line">Stories of</span>
-            <span class="ht-line ht-emph">Trinidad</span>
+            <span class="ht-line">{{ content.hero.titleLine }}</span>
+            <span class="ht-line ht-emph">{{ content.hero.titleEmph }}</span>
           </h1>
 
-          <p class="hero-lead">
-            Stand where the history happened. We’ll plot a walking loop from where
-            you are and let each historic building tell its own story.
-          </p>
+          <p class="hero-lead">{{ content.hero.lead }}</p>
 
           <div class="hero-actions">
             <button class="hero-cta" @click="startTour">
               <span class="hero-cta-ic"><Headphones :size="18" :stroke-width="1.6" /></span>
-              <span>{{ coords ? 'Start nearest stop' : 'Begin the tour' }}</span>
+              <span>{{ coords ? content.hero.ctaNearest : content.hero.ctaStart }}</span>
             </button>
 
             <!-- Location status -->
@@ -157,11 +157,11 @@ onMounted(() => request())
           </div>
 
           <div class="hero-meta">
-            <span><b>{{ stopCount }}</b> Stops</span>
+            <span><b>{{ stopCount }}</b> {{ content.hero.stopsLabel }}</span>
             <span class="dot" aria-hidden="true"></span>
-            <span><b>~15</b> Min Walk</span>
+            <span><b>{{ content.hero.walkMinutes }}</b> {{ content.hero.walkLabel }}</span>
             <span class="dot" aria-hidden="true"></span>
-            <span><b>Est.</b> 1862</span>
+            <span><b>{{ content.hero.estLabel }}</b> {{ content.hero.estYear }}</span>
           </div>
         </div>
       </div>
@@ -172,11 +172,9 @@ onMounted(() => request())
       <div class="container">
         <div class="index-head" v-reveal>
           <span class="numeral index-count">{{ pad(stopCount) }}</span>
-          <h2 class="index-title">The Stops</h2>
+          <h2 class="index-title">{{ content.index.title }}</h2>
           <p class="index-sub">
-            {{ coords
-              ? 'Start with the stops nearest you, then explore the rest by district.'
-              : 'Begin at the heart of downtown, then explore the rest by district.' }}
+            {{ coords ? content.index.subNearest : content.index.subStart }}
           </p>
         </div>
 
@@ -221,8 +219,8 @@ onMounted(() => request())
         <!-- The rest: collapsible district sections -->
         <div class="more" v-reveal>
           <div class="more-head">
-            <span class="eyebrow eyebrow--brass">The full route</span>
-            <h3 class="more-title">More to explore</h3>
+            <span class="eyebrow eyebrow--brass">{{ content.index.moreEyebrow }}</span>
+            <h3 class="more-title">{{ content.index.moreTitle }}</h3>
           </div>
 
           <div
@@ -267,23 +265,32 @@ onMounted(() => request())
     <footer class="foot">
       <div class="container foot-inner">
         <div class="foot-brand">
-          <span class="wm-line eyebrow">Stories of</span>
-          <span class="wm-mark">Trinidad</span>
+          <!-- Brand brick: shown only where it can sit at its 500px minimum with clear space -->
+          <img
+            class="foot-brick"
+            src="/trinidad-brick-cream.svg"
+            alt="Trinidad"
+            width="500"
+            height="211"
+          />
+          <div class="foot-wordmark">
+            <span class="wm-line eyebrow">{{ content.footer.wordmarkLine }}</span>
+            <span class="wm-mark">{{ content.footer.wordmarkName }}</span>
+          </div>
         </div>
         <p class="foot-note">
-          A self-guided heritage tour of Trinidad, Colorado.<br />
-          Scan a marker, press play, and walk into the past.
+          {{ content.footer.noteLead }}<br />
+          {{ content.footer.noteTrail }}
         </p>
 
         <p class="foot-attrib">
-          Tour narratives adapted from <em>A Walk Through the History of Trinidad</em>
-          by Gerald H. Stokes, produced by the Trinidad Tourism Board.
-          Audio and photographs courtesy of
-          <a href="https://youraudiotour.com/tours/a-walk-through-the-history-of-trinidad/"
-             target="_blank" rel="noopener">Your Audio Tour</a>.
+          {{ content.footer.attributionLead }} <em>{{ content.footer.attributionWork }}</em>
+          {{ content.footer.attributionTrail }}
+          <a :href="content.footer.attributionLinkUrl" target="_blank" rel="noopener">
+            {{ content.footer.attributionLinkLabel }}</a>.
         </p>
 
-        <p class="foot-credit eyebrow">Trinidad · Colorado · USA</p>
+        <p class="foot-credit eyebrow">{{ content.footer.credit }}</p>
       </div>
     </footer>
   </div>
@@ -730,6 +737,13 @@ onMounted(() => request())
 .foot { background: var(--surface-ink); color: var(--paper); padding: var(--sp-8) 0 var(--sp-6); }
 .foot-inner { text-align: center; }
 .foot-brand { margin-bottom: 1.5rem; }
+/* Brick rules: at least 500px wide, never scaled down, and the cartouche's
+   height (~100px at this size) kept clear on every side. */
+.foot-brick { display: none; width: 500px; height: auto; margin: 0 auto 4.5rem; }
+@media (min-width: 720px) {
+  .foot-brick { display: block; }
+  .foot-wordmark { display: none; }
+}
 .foot-brand .wm-line { color: rgba(245,238,226,0.5); display: block; margin-bottom: 0.4rem; }
 .foot-brand .wm-mark {
   font-family: var(--font-display);
