@@ -7,11 +7,15 @@ import { reveal } from './directives/reveal'
 import { initApotomeAnalytics } from './kit/analytics'
 import { applyDeep, initApotomeEditor, loadPublishedContent } from './kit/editor'
 import { content } from './data/site'
+import { installSeo } from './seo'
+import { site } from './seo.site'
 
 const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
+// the head follows the route table on every navigation; the build wrote the same tags per page
+installSeo(router, site)
 app.directive('reveal', reveal)
 
 app.mount('#app')

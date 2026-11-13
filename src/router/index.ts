@@ -1,21 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomePage from '@/views/HomePage.vue'
-import TourLocation from '@/views/TourLocation.vue'
+import { notFoundRoute, publicRoutes } from '@/routes'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: HomePage
-    },
-    {
-      path: '/location/:id',
-      name: 'location',
-      component: TourLocation
-    }
-  ],
+  // The home page and every tour stop, each with its SEO record (src/routes.ts)
+  routes: [...publicRoutes, notFoundRoute],
   scrollBehavior(to, from, savedPosition) {
     // Restore on back/forward; otherwise always start a new page at the top.
     return savedPosition ?? { top: 0 }

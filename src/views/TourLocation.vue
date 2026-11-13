@@ -7,6 +7,7 @@ import AudioPlayer from '@/components/AudioPlayer.vue'
 import TranscriptSection from '@/components/TranscriptSection.vue'
 import NearbyLocations from '@/components/NearbyLocations.vue'
 import { MapPin, Clock } from 'lucide-vue-next'
+import { useSeoData } from '@/seo'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,6 +15,8 @@ const locationsStore = useLocationsStore()
 const captionsEnabled = ref(false)
 
 const location = computed(() => locationsStore.currentLocation)
+// title, description, share image and the stop's TouristAttraction follow the current stop
+useSeoData(location)
 const nearbyLocations = computed(() => {
   if (!location.value) return []
   return locationsStore.getNearbyLocations(location.value.id)
