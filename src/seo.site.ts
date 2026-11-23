@@ -10,6 +10,8 @@ import type { SiteConfig } from '@/seo'
 
 export const site: SiteConfig = {
   siteUrl: 'https://www.storiesoftrinidad.co',
+  // Google Search Console ownership tag (home page only). Managed by the studio.
+  verification: { google: 'NkWLQ-lvWc-VLcKYKy0c8TugoEv1Eb8dC45pkYf5VmQ' },
   name: 'Stories of Trinidad',
   tagline: 'Self-guided audio heritage tour',
   description:
